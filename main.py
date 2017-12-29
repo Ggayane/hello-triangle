@@ -10,35 +10,47 @@ def create_native_window():
     glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, GL_TRUE)
     glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
     
-    window = glfw.create_window(800, 600, 'yay', None, None)
+    window = glfw.create_window(800, 600, 'hello triangle', None, None)
     glfw.make_context_current(window)
     return window
 
 window = create_native_window()
 
 def setup_triangle():
-    coords = [
+    coords = np.array([
         0, 0.5,
         -0.5, -0.5,
         0.5, -0.5
-    ]
+    ], dtype=np.float32)
+    colors = np.array([
+        1, 0.5, 0.5,
+        0.5, 1, 0.5,
+        0.5, 0.5, 1
+    ], dtype=np.float32)
 
     itemsize = np.dtype('float32').itemsize
 
     vao = glGenVertexArrays(1)
     glBindVertexArray(vao)
 
-    coords_buffer = glGenBuffers(1)
+    vbo_id = glGenBuffers(2)
     typed_coords = np.array(coords, dtype='float32')
 
-    glBindBuffer(GL_ARRAY_BUFFER, coords_buffer)
-    glBufferData(GL_ARRAY_BUFFER, itemsize * typed_coords.size, typed_coords, GL_STATIC_DRAW)
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_id[0])
+    glBufferData(GL_ARRAY_BUFFER, itemsize * coords.size, coords, GL_STATIC_DRAW)
     # tell how data should be read
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, None)
     # get vertex variable location: in this case coords location
     coords_attrib_location = glGetAttribLocation(program, 'coords')
     # link variable with currently bound buffer on GL_ARRAY_BUFFER target (target=slot)
     glEnableVertexAttribArray(coords_attrib_location)
+
+    # the same for colors
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_id[1])
+    glBufferData(GL_ARRAY_BUFFER, itemsize * colors.size, colors, GL_STATIC_DRAW)
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, None)
+    colors_attrib_location = glGetAttribLocation(program, 'colors')
+    glEnableVertexAttribArray(colors_attrib_location)
 
 
 def load_shaders():
