@@ -1,6 +1,7 @@
 from OpenGL.GL import * 
 import glfw
 import numpy as np
+from utils import load_image
 
 def create_native_window():
     glfw.init()
@@ -22,10 +23,17 @@ def setup_triangle():
         -0.5, -0.5,
         0.5, -0.5
     ], dtype=np.float32)
+
     colors = np.array([
         1, 0.5, 0.5,
         0.5, 1, 0.5,
         0.5, 0.5, 1
+    ], dtype=np.float32)
+
+    tex_coords = np.array([
+        0.5, 0,
+        0, 1,
+        1, 1
     ], dtype=np.float32)
 
     itemsize = np.dtype('float32').itemsize
@@ -33,25 +41,51 @@ def setup_triangle():
     vao = glGenVertexArrays(1)
     glBindVertexArray(vao)
 
-    vbo_id = glGenBuffers(2)
-    typed_coords = np.array(coords, dtype='float32')
+    vbo_id = glGenBuffers(3)
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo_id[0])
     glBufferData(GL_ARRAY_BUFFER, itemsize * coords.size, coords, GL_STATIC_DRAW)
-    # tell how data should be read
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, None)
-    # get vertex variable location: in this case coords location
+     # get vertex variable location: in this case coords location
     coords_attrib_location = glGetAttribLocation(program, 'coords')
+    # tell how data should be read
+    glVertexAttribPointer(coords_attrib_location, 2, GL_FLOAT, GL_FALSE, 0, None)
     # link variable with currently bound buffer on GL_ARRAY_BUFFER target (target=slot)
     glEnableVertexAttribArray(coords_attrib_location)
 
     # the same for colors
     glBindBuffer(GL_ARRAY_BUFFER, vbo_id[1])
     glBufferData(GL_ARRAY_BUFFER, itemsize * colors.size, colors, GL_STATIC_DRAW)
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, None)
     colors_attrib_location = glGetAttribLocation(program, 'colors')
+    glVertexAttribPointer(colors_attrib_location, 3, GL_FLOAT, GL_FALSE, 0, None)
     glEnableVertexAttribArray(colors_attrib_location)
 
+    # the same for texture
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_id[2])
+    glBufferData(GL_ARRAY_BUFFER, itemsize * tex_coords.size, tex_coords, GL_STATIC_DRAW)
+    tex_coords_attrib_location = glGetAttribLocation(program, 'a_tex_coords')
+    glVertexAttribPointer(tex_coords_attrib_location, 2, GL_FLOAT, GL_FALSE, 0, None)
+    glEnableVertexAttribArray(tex_coords_attrib_location)
+
+def load_textures():
+    texture_data, width, height = load_image('./assets/femalecodercat.jpg')
+
+    print(texture_data, width, height)
+
+    texture = glGenTextures(1)
+
+    glBindTexture(GL_TEXTURE_2D, texture)
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, texture_data)
+    glBindTexture(GL_TEXTURE_2D, 0)
+
+    texture_loc = glGetUniformLocation(program, 'octo_texture')
+
+    return texture, texture_loc
 
 def load_shaders():
     with open('./shaders/vertex.glsl') as vertex_shader:
@@ -79,16 +113,23 @@ def load_shaders():
 
     return program
 
+def handle_texture():
+    glUniform1i(texture_loc, 0)
+    glActiveTexture(GL_TEXTURE0)
+    glBindTexture(GL_TEXTURE_2D, texture)
+
 program = load_shaders()
 setup_triangle()
 
 glUseProgram(program)
+texture, texture_loc = load_textures()
 
 def draw():
     glClear(GL_COLOR_BUFFER_BIT)
 
-    glDrawArrays(GL_TRIANGLES, 0, 3)
+    handle_texture()
 
+    glDrawArrays(GL_TRIANGLES, 0, 3)
 
 def main_loop():
     while not glfw.window_should_close(window):
