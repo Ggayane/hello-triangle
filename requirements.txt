@@ -1,4 +1,4 @@
 glfw==1.4.0
-numpy==1.13.3
+numpy==1.22.0
 PyOpenGL==3.1.0
 PyOpenGL-accelerate==3.1.0
